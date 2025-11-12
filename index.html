@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Grade Analyzer - Multiple Subjects</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Single Student Grade Analyzer - Multiple Subjects</h1>
+    <p>This tool analyzes one student's grades across subjects and periods. You can upload a CSV or enter data manually.</p>
+    
+    <h2>Upload CSV</h2>
+    <p>CSV format: 'Subject' (e.g., Math), 'Period' (e.g., 2023-01-15 or Week 1), 'Grade' (0-100).</p>
+    <input type="file" id="csvFile" accept=".csv">
+    <button onclick="analyzeFromCSV()">Analyze from CSV</button>
+    
+    <h2>Manual Input</h2>
+    <div id="subjectsContainer"></div>
+    <button onclick="addSubject()">Add Subject</button>
+    <button onclick="analyzeGrades()">Analyze Manually Entered Data</button>
+    
+    <div id="results"></div>
+    <div id="chartsContainer"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>

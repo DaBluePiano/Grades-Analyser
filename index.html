@@ -5,46 +5,88 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Weighted Grade Calculator</title>
 
-  <!-- Atkinson Hyperlegible -->
-  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+  <!-- Crimson Pro -->
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
 
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
   <header class="header">
-    <h1>Weighted Grade Calculator</h1>
-    <button id="themeToggle" class="icon-btn" aria-label="Toggle dark mode">
-      <span class="material-icons">dark_mode</span>
-    </button>
+    <div class="header-left">
+      <h1>Weighted Grade Calculator</h1>
+      <span id="saveStatus" class="save-status"></span>
+    </div>
+    <div class="header-actions">
+      <button id="undoBtn" class="icon-btn" aria-label="Undo" title="Undo (Ctrl+Z)">
+        <span class="material-icons">undo</span>
+      </button>
+      <button id="redoBtn" class="icon-btn" aria-label="Redo" title="Redo (Ctrl+Shift+Z)">
+        <span class="material-icons">redo</span>
+      </button>
+      <button id="shortcutsBtn" class="icon-btn" aria-label="Keyboard Shortcuts" title="Shortcuts (?)">
+        <span class="material-icons">keyboard</span>
+      </button>
+      <button id="themeToggle" class="icon-btn" aria-label="Toggle dark mode">
+        <span class="material-icons">dark_mode</span>
+      </button>
+    </div>
   </header>
 
   <main class="container">
 
     <!-- Upload -->
-    <section class="card">
-      <h2>Upload CSV</h2>
-      <p class="subtitle">Columns: <code>Subject,Task,MarkGotten,MaxMark,Weight</code></p>
+    <section class="card" id="uploadCard">
+      <h2>Import Data</h2>
       <div class="file-input">
-        <input type="file" id="csvFile" accept=".csv" />
-        <button onclick="analyzeFromCSV()" class="btn primary">Analyze CSV</button>
+        <input type="file" id="csvFile" accept=".csv,.json" />
+        <button onclick="analyzeFromFile()" class="btn primary">Analyze File</button>
+        <button onclick="importJSON()" class="btn outline" id="importJsonBtn">
+          <span class="material-icons">folder_open</span> Import JSON
+        </button>
       </div>
     </section>
 
     <!-- Manual -->
-    <section class="card">
+    <section class="card" id="manualCard">
       <h2>Manual Entry</h2>
+      <div class="search-bar">
+        <span class="material-icons">search</span>
+        <input type="text" id="taskSearch" placeholder="Search tasks… (press /)" oninput="filterTasks(this.value)" />
+        <button class="icon-btn clear-search" onclick="document.getElementById('taskSearch').value=''; filterTasks('')" title="Clear search">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
       <div class="default-subjects"></div>
       <div id="subjectsContainer" class="subjects-grid"></div>
       <div class="actions">
         <button onclick="addSubject()" class="btn outline">Add Custom Subject</button>
+        <button onclick="duplicateLastSubject()" class="btn outline" id="duplicateBtn">
+          <span class="material-icons">content_copy</span> Duplicate Last
+        </button>
         <button onclick="analyzeGrades()" class="btn primary">Calculate Grades</button>
+        <button onclick="openPredictionModal()" class="btn outline" id="predictBtn">
+          <span class="material-icons">calculate</span> Predict
+        </button>
+        <button onclick="toggleBulkEdit()" class="btn outline" id="bulkEditBtn">
+          <span class="material-icons">edit</span> Bulk Edit
+        </button>
         <button onclick="exportToCSV()" class="btn outline" id="exportBtn">
           <span class="material-icons">download</span> Export CSV
+        </button>
+        <button onclick="backupData()" class="btn outline" id="backupBtn">
+          <span class="material-icons">save</span> Backup JSON
+        </button>
+        <button onclick="shareData()" class="btn outline" id="shareBtn">
+          <span class="material-icons">share</span> Share
+        </button>
+        <button onclick="exportPDF()" class="btn outline" id="printBtn">
+          <span class="material-icons">print</span> Print Report
         </button>
       </div>
     </section>
@@ -53,6 +95,60 @@
     <div id="chartsContainer"></div>
 
   </main>
+
+  <!-- Prediction Modal -->
+  <div id="predictionModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Grade Prediction</h2>
+        <button class="icon-btn modal-close" onclick="closePredictionModal()">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <label>Subject:
+          <select id="predictSubject"></select>
+        </label>
+        <label>Target Grade (%):
+          <input type="number" id="predictTarget" min="0" max="100" placeholder="e.g. 85" />
+        </label>
+        <label>Next Task Name:
+          <input type="text" id="predictTaskName" placeholder="e.g. Final Exam" />
+        </label>
+        <label>Task Weight (%):
+          <input type="number" id="predictWeight" min="0" max="100" placeholder="e.g. 30" />
+        </label>
+        <button onclick="predictGrade()" class="btn primary" style="width:100%;">Calculate Required Mark</button>
+        <div id="predictResult" class="predict-result" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shortcuts Modal -->
+  <div id="shortcutsModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Keyboard Shortcuts</h2>
+        <button class="icon-btn modal-close" onclick="closeShortcutsModal()">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+      <div class="modal-body shortcuts-body">
+        <div class="shortcut-row"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> <span>Calculate Grades</span></div>
+        <div class="shortcut-row"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> <span>Export CSV</span></div>
+        <div class="shortcut-row"><kbd>Ctrl</kbd>+<kbd>Z</kbd> <span>Undo</span></div>
+        <div class="shortcut-row"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> <span>Redo</span></div>
+        <div class="shortcut-row"><kbd>/</kbd> <span>Focus Search</span></div>
+        <div class="shortcut-row"><kbd>Esc</kbd> <span>Close Modal</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Share Toast -->
+  <div id="shareToast" class="toast" style="display:none;">
+    <span id="shareToastMsg"></span>
+    <button onclick="copyShareLink()" class="btn outline" style="padding:6px 14px; font-size:0.8rem;">Copy Link</button>
+  </div>
 
   <script src="script.js"></script>
 </body>
